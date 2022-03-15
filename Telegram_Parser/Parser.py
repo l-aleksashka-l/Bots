@@ -82,6 +82,37 @@ async def main():
 with client:
 	client.loop.run_until_complete(main())
 
+async def add_new_table(id)
+  cursor = con.cursor()
+  start_query = "CREATE TABLE IF NOT EXISTS "
+  end_query = "(id SERIAL PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, user_id INTEGER REFERENCES users(id))"
+  create_posts_table = start_query + id + end_query
+  cursor.execute(create_post_table)
+  print("Table created successfully")
+  con.commit()
+  con.close()
+
+  con = psycopg2.connect(
+	  database="postgres",
+	  user="postgres",
+	  password="",
+	  host="127.0.0.1",
+	  port="5432"
+  )
+
+
+async def check(text):
+	global target
+	if text.startswith('+'):
+		target = text
+		destination_channel_username = target
+		entity = await client.get_entity(destination_channel_username)
+		await bot.send_message(entity, 'Add telegram channels to bot:')
+	elif text.startswith('https'):
+		entity = await client.get_entity(target)
+		entChannel = await client.get_entity(text)
+		await new_item(entity.id, text, entChannel.id)
+		await notmain(text)
 
 
 
