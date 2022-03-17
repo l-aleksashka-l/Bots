@@ -13,14 +13,16 @@ api_id = config['Telegram']['api_id']
 api_hash = config['Telegram']['api_hash']
 api_id_bot = config['Telegram']['api_id_bot']
 api_hash_bot = config['Telegram']['api_hash_bot']
+session_test = config['Telegram']['session_test']
 session_string = config['Telegram']['session_string']
 session_string_bot = config['Telegram']['session_string_bot']
 
-client = MongoClient("mongodb+srv://aleksashka:JyoXzdmxx06qeAUi@cluster0.rgmqp.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+client = MongoClient(
+    "mongodb+srv://aleksashka:JyoXzdmxx06qeAUi@cluster0.rgmqp.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
 dbname = client['Telegram']
 
 bot_token = '5130916795:AAEAvp3rcUNOouvsyDI6J4XoVULXRrjudzo'
-client = TelegramClient(StringSession(session_string), api_id, api_hash)
+client = TelegramClient(StringSession(session_test), api_id, api_hash)
 
 bot = TelegramClient(StringSession(session_string_bot), api_id_bot, api_hash_bot).start(bot_token=bot_token)
 
@@ -31,56 +33,61 @@ target = 'businessaid'
 channels = []
 
 
-@bot.on(events.NewMessage(pattern = '/start'))
+@bot.on(events.NewMessage(pattern='/start'))
 async def send_welcome(event):
-    await event.reply('Give a number:')
+    await event.reply('Send links to telegram channel:')
 
 
-async def new_item(id, link, collection_name, last):
-    if not collection_name.find({"tgChannel": link}):
-        item = {"tgID" : id, "tgChannel": link, "lastMessID" : last}
+async def new_item(link, collection_name, last, tgId):
+    #if not collection_name.find({"tgChannel": link}):
+        item = {'tgID': tgId, "tgChannel": link, "lastMessID": last}
         collection_name.insert_one(item)
 
 
-
-
-async def check(text):
-    global target
-    if text.startswith('+'):
-        target = text
-        destination_channel_username = target
-        entity = await client.get_entity(destination_channel_username)
-        await bot.send_message(entity, 'Add telegram channels to bot:')
-    elif text.startswith('https'):
-        entity = await client.get_entity(target)
-        entChannel = await client.get_entity(text)
-        collection_name = dbname[str(entity.id)]
-        messages = await client.get_messages(entChannel, limit=1)
+async def check(link, id):
+    if link.startswith('https'):
+        channel = await client.get_entity(link)
+        collection_name = dbname['users']
+        messages = await client.get_messages(channel, limit=1)
+        last = 1
         for x in messages[:1]:
-            m = x.id
-        await new_item(entity.id, text, collection_name, m)
-        await notmain(collection_name, entity.id)
+            last = x.id
+        await new_item(link, collection_name, last, id)
+        await notmain(collection_name, id)
+
+    elif link.startswith('/run'):
+        collection_name = dbname['users']
+        await notmain(collection_name, id)
 
 
 async def notmain(collection_name, id):
 
     n_last = 1
     time_wait = 10
-    for tgChannel in collection_name.find({}):
-        channels = await client.get_entity(tgChannel["tgChannel"])
-        messages = await client.get_messages(channels, limit=10)
-        for x in messages[:n_last]:
-            entity = await client.get_entity(target)
-            await client.forward_messages(entity, x)
-            filter = {'tgID': id}
-            newvalues = {"$set": {'lastMessID': x.id}}
-            collection_name.update_one(filter, newvalues)
-        time.sleep(time_wait)
+    while True:
+        for tgChannel in collection_name.find({}):
+            channels = await client.get_entity(tgChannel["tgChannel"])
+            messages = await client.get_messages(channels, limit=50)
+            for x in messages[:n_last]:
+                filter = {'tgID': id, "tgChannel": tgChannel["tgChannel"]}
+                try:
+                    if x.id > collection_name.find_one(filter)["lastMessID"]:
+                        for i in range(collection_name.find_one(filter)["lastMessID"]+1, x.id+1):
+                            print(i)
+                            await client.forward_messages(i, x)
+                        newvalues = {"$set": {'lastMessID': collection_name.find_one(filter)["lastMessID"] + 1}}
+                        collection_name.update_one(filter, newvalues)
+                    else:
+                        break
+                except Exception:
+                    break
+            time.sleep(time_wait)
 
 
 @bot.on(events.NewMessage)
 async def echo_all(event):
-    await check(event.text)
+    id = await event.get_sender()
+    await check(event.text, id.id)
 
 
 bot.run_until_disconnected()
