@@ -22,7 +22,7 @@ client = MongoClient(
 dbname = client['Telegram']
 
 bot_token = '5130916795:AAEAvp3rcUNOouvsyDI6J4XoVULXRrjudzo'
-client = TelegramClient(StringSession(session_test), api_id, api_hash)
+client = TelegramClient(StringSession(session_string), api_id, api_hash)
 
 bot = TelegramClient(StringSession(session_string_bot), api_id_bot, api_hash_bot).start(bot_token=bot_token)
 
@@ -61,9 +61,8 @@ async def check(link, id):
 
 
 async def notmain(collection_name, id):
-
     n_last = 50
-    time_wait = 10
+    time_wait = 600
     while True:
         for tgChannel in collection_name.find({}):
             channels = await client.get_entity(tgChannel["tgChannel"])
@@ -79,13 +78,16 @@ async def notmain(collection_name, id):
                         break
                 except Exception:
                     break
-            array.reverse()
-            for x in array:
-                filter = {'tgID': id, "tgChannel": tgChannel["tgChannel"]}
-                await client.forward_messages(x.id, x)
-                newvalues = {"$set": {'lastMessID': collection_name.find_one(filter)["lastMessID"] + 1}}
-                collection_name.update_one(filter, newvalues)
-            time.sleep(time_wait)
+            try:
+                array.reverse()
+                for x in array:
+                    filter = {'tgID': id, "tgChannel": tgChannel["tgChannel"]}
+                    await client.forward_messages(id, x)
+                    newvalues = {"$set": {'lastMessID': collection_name.find_one(filter)["lastMessID"] + 1}}
+                    collection_name.update_one(filter, newvalues)
+            except Exception:
+                continue
+        time.sleep(time_wait)
 
 
 @bot.on(events.NewMessage)
