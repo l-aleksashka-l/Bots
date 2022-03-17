@@ -62,25 +62,29 @@ async def check(link, id):
 
 async def notmain(collection_name, id):
 
-    n_last = 1
+    n_last = 50
     time_wait = 10
     while True:
         for tgChannel in collection_name.find({}):
             channels = await client.get_entity(tgChannel["tgChannel"])
             messages = await client.get_messages(channels, limit=50)
+            array = []
             for x in messages[:n_last]:
                 filter = {'tgID': id, "tgChannel": tgChannel["tgChannel"]}
                 try:
                     if x.id > collection_name.find_one(filter)["lastMessID"]:
-                        for i in range(collection_name.find_one(filter)["lastMessID"]+1, x.id+1):
-                            print(i)
-                            await client.forward_messages(i, x)
-                        newvalues = {"$set": {'lastMessID': collection_name.find_one(filter)["lastMessID"] + 1}}
-                        collection_name.update_one(filter, newvalues)
+                        array.append(x)
+
                     else:
                         break
                 except Exception:
                     break
+            array.reverse()
+            for x in array:
+                filter = {'tgID': id, "tgChannel": tgChannel["tgChannel"]}
+                await client.forward_messages(x.id, x)
+                newvalues = {"$set": {'lastMessID': collection_name.find_one(filter)["lastMessID"] + 1}}
+                collection_name.update_one(filter, newvalues)
             time.sleep(time_wait)
 
 
