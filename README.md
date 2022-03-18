@@ -32,4 +32,8 @@ Voice and video message, photos, links, videos parsing too
 
 ---
 
-### NOW I WANNA WROTE TELEGRAM BOT, WHICH WILL PARSE CHANNELS AND GET ONE LONG FEED
+### BOT_TELEGRAM_PARSER  
+-https:tgchannel  
+Send all new messages every 10 minutes  
+Have little bags with MongoDB updates  
+Can't deploy with Heroku because have MongoDB bags
